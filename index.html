@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DynamicMap Studio · Biên tập bản đồ động</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#ecedff;background:#0c1020;--surface:#171d32;--line:#313c5e;--aqua:#55e7fa}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #66e5ff;outline-offset:2px}
+header{height:62px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--line);background:#11182b}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.4px}.brand span{color:var(--aqua)}.sub{color:#94a5ca;font-size:11px;font-weight:500}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.btn{border:1px solid #3e5178;border-radius:8px;background:#24324d;color:#edf4ff;padding:9px 12px}.btn.primary{background:#087c96;border-color:#10b7d3}.btn:hover{filter:brightness(1.15)}
+main{display:grid;grid-template-columns:285px minmax(0,1fr) 260px;min-height:calc(100vh - 62px)}
+aside{background:var(--surface);padding:18px;overflow-y:auto;max-height:calc(100vh - 62px)}aside.left{border-right:1px solid var(--line)}aside.right{border-left:1px solid var(--line)}
+h2{margin:0 0 14px;font-size:15px}h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#a8b9db;margin:25px 0 12px}
+.field{display:grid;gap:7px;margin:12px 0;font-size:12px;color:#c7d4ed}.field input:not([type=checkbox]):not([type=range]),.field select{width:100%;border:1px solid #42516e;border-radius:7px;padding:9px;background:#0e1629;color:#fff}
+.field input[type=range]{width:100%;accent-color:#35d7ef}.toggle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:14px 0;color:#d2dcf0;font-size:12px}.toggle input{accent-color:#2ecce7;width:16px;height:16px}
+.hint,.muted{color:#93a5c7;font-size:11px;line-height:1.6}.toolrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.toolrow button{font-size:12px}.toolrow button.active{border-color:#54f3f7;background:#13566d}
+.workspace{min-width:0;background:radial-gradient(circle at 50% 35%,#2c3a55,#101827 65%);padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.workspacebar{width:min(100%,900px);display:flex;justify-content:space-between;align-items:center;color:#bac8e2;font-size:12px;gap:12px}
+.paper{position:relative;width:min(100%,760px);aspect-ratio:760/900;background:#180f2d;border:9px solid #f6f3ef;box-shadow:0 15px 55px #000a;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}.status{width:min(100%,900px);display:flex;justify-content:space-between;gap:12px;font-size:11px;color:#a4b4d2}
+.stat{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2d3a56;font-size:12px}.stat b{color:#61eaff}.flag{color:#ffcc72}
+@media(max-width:1150px){main{grid-template-columns:230px minmax(0,1fr)}aside.right{grid-column:1/-1;max-height:none;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,1fr);gap:12px}aside.right h2{grid-column:1/-1}}
+@media(max-width:700px){header{height:auto;min-height:62px;align-items:flex-start;padding:12px;flex-direction:column}main{display:flex;flex-direction:column}aside{max-height:none}aside.left{order:2}aside.right{order:3;display:block}.workspace{order:1;padding:8px}.paper{border-width:5px}.toolbar{gap:5px}.btn{padding:7px}}
+</style></head><body>
+<header><div class="brand">◈ Dynamic<span>Map</span> Studio<div class="sub">NEON GIS · TRÌNH BIÊN TẬP BẢN ĐỒ TƯƠNG TÁC</div></div><div class="toolbar">
+<button class="btn" id="pause">⏸ Tạm dừng</button><button class="btn" id="reset">↺ Chạy lại</button>
+<label style="font-size:12px">Tốc độ <strong id="speedText">3×</strong> <input id="speed" aria-label="Tốc độ" type="range" min="1" max="10" value="3" style="vertical-align:middle;accent-color:#36d4ed"></label>
+<button class="btn primary" id="png">↓ Xuất PNG</button></div></header>
+<main><aside class="left"><h2>⚙ Tùy chỉnh bản đồ</h2>
+<label class="field">Tiêu đề<input id="title" value="BẢN ĐỒ NHIỆT TAI NẠN GIAO THÔNG (2023–2025)"></label>
+<label class="field">Địa danh<input id="place" value="TALAVERA · NUEVA ECIJA · PHILIPPINES"></label>
+<label class="field">Chủ đề màu<select id="theme"><option value="neon">Neon tím đêm</option><option value="navy">Địa lý xanh đậm</option><option value="light">Bản đồ giấy sáng</option></select></label>
+<h3>Thành phần bản đồ</h3>
+<label class="toggle">Ranh giới hành chính mô phỏng <input id="boundary" type="checkbox" checked></label>
+<label class="toggle">Đường giao thông <input id="roads" type="checkbox" checked></label>
+<label class="toggle">Heatmap nhấp nháy <input id="heat" type="checkbox" checked></label>
+<label class="toggle">Xe neon và vệt đuôi <input id="vehicle" type="checkbox" checked></label>
+<label class="toggle">Lưới tọa độ <input id="grid" type="checkbox" checked></label>
+<label class="toggle">Chú giải, Bắc và tỷ lệ <input id="furniture" type="checkbox" checked></label>
+<h3>Biên tập trực tiếp</h3>
+<div class="toolrow"><button class="btn active" data-mode="view">◉ Xem</button><button class="btn" data-mode="heat">＋ Điểm nóng</button><button class="btn" data-mode="route">＋ Tuyến xe</button><button class="btn" data-mode="delete">− Xóa điểm</button></div>
+<p class="hint">Chọn công cụ rồi nhấp vào bản đồ. Chế độ “Tuyến xe” thêm đỉnh vào cuối tuyến; “Xóa điểm” xóa điểm nóng gần nhất hoặc đỉnh tuyến gần nhất. Mọi tọa độ chỉnh sửa ở đây là tọa độ tương đối của mô phỏng.</p>
+<div class="toolrow"><button class="btn" id="save">⇩ Xuất JSON</button><button class="btn" id="load">⇧ Nhập JSON</button></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+<button class="btn" id="restore" style="width:100%;margin-top:9px">Khôi phục dữ liệu mẫu</button>
+<h3>Thiết kế</h3><label class="field">Độ rực ánh sáng <input id="glow" type="range" min="0" max="100" value="75"></label>
+<label class="field">Độ dài vệt đuôi <input id="trail" type="range" min="15" max="220" value="130"></label>
+</aside>
+<section class="workspace"><div class="workspacebar"><strong>KHUNG BẢN ĐỒ · BỐ CỤC IN ẤN</strong><span>Canvas 2D • 760 × 900</span></div>
+<div class="paper"><canvas id="map" aria-label="Bản đồ mô phỏng tương tác Talavera" width="1520" height="1800"></canvas></div>
+<div class="status"><span id="status">Sẵn sàng · Tọa độ sơ đồ</span><span>Long Ngo thiết kế · MIT 2026</span></div></section>
+<aside class="right"><h2>◈ Theo dõi mô phỏng</h2><div class="stat"><span>Đối tượng</span><b>01 xe neon</b></div><div class="stat"><span>Điểm nóng</span><b id="hotCount">5</b></div><div class="stat"><span>Điểm tuyến</span><b id="routeCount">10</b></div><div class="stat"><span>Tiến trình</span><b id="progress">0%</b></div>
+<h3>Đặc tính mô hình</h3><p class="hint">Di chuyển theo chiều dài các đoạn của polyline, cập nhật bằng requestAnimationFrame và deltaTime; ánh sáng chồng lớp ở chế độ lighter; đường đèn pha và vệt HSL đổi sắc liên tục.</p>
+<h3>Độ tin cậy dữ liệu</h3><p class="hint flag">Đây là bản đồ đồ họa mô phỏng theo ba HTML tham chiếu, không phải bản đồ địa chính hoặc dữ liệu tai nạn được xác minh. Các giá trị lưới/tỷ lệ chỉ dùng làm tham khảo minh họa.</p>
+<h3>Tệp đầu ra</h3><p class="hint">PNG giữ bố cục bản đồ tại độ phân giải 1520 × 1800 px. JSON lưu điểm nóng, đường giao thông và nội dung biên tập để mở lại.</p>
+</aside></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const c=$('map'),g=c.getContext('2d',{alpha:false});
+const W=760,H=900,SCALE=2,rad=Math.PI/180;
+const initial={
+ boundary:[[.40,.08],[.60,.12],[.78,.28],[.85,.45],[.88,.62],[.78,.82],[.62,.94],[.42,.95],[.30,.88],[.22,.75],[.20,.55],[.25,.35],[.32,.20]],
+ inset:[[.18,.08],[.32,.06],[.34,.18],[.28,.24],[.16,.20]],
+ road:[[.58,.90],[.54,.81],[.49,.73],[.45,.65],[.42,.55],[.45,.45],[.43,.36],[.38,.28],[.31,.18],[.28,.10]],
+ secondary:[[[.77,.60],[.62,.75],[.58,.90]],[[.42,.55],[.58,.52],[.68,.61]],[[.31,.18],[.22,.22],[.18,.15]],[[.45,.45],[.52,.40],[.62,.45]],[[.38,.28],[.50,.31],[.62,.28]],[[.49,.73],[.35,.78],[.28,.70]]],
+ spots:[[.42,.55,45,1],[.45,.45,35,.85],[.49,.73,30,.72],[.38,.28,25,.5],[.58,.81,25,.45]]
+};
+let data=structuredClone(initial),running=true,mode='view',distance=0,hue=180,trail=[],elapsed=0,last=0;
+const on=id=>$(id).checked;
+const palette=()=> $('theme').value==='light'?{bg:'#e8e5e0',fg:'#25344d',secondary:'#9aa7bd',roads:'#cf6418',frame:'#586174',card:'#f8f8f0'}:$('theme').value==='navy'?{bg:'#081c33',fg:'#f3f7ff',secondary:'#5886a3',roads:'#ffad45',frame:'#b5d7ef',card:'#0f2947'}:{bg:'#1d1034',fg:'#f6f1ff',secondary:'#68578d',roads:'#ff821e',frame:'#d6c9fa',card:'#160d29'};
+function line(points,close=false){g.beginPath();points.forEach((p,i)=>i?g.lineTo(p[0]*W,p[1]*H):g.moveTo(p[0]*W,p[1]*H));if(close)g.closePath()}
+function geometry(){let cum=[0];for(let i=1;i<data.road.length;i++)cum.push(cum.at(-1)+Math.hypot((data.road[i][0]-data.road[i-1][0])*W,(data.road[i][1]-data.road[i-1][1])*H));return {cum,total:cum.at(-1)||1}}
+function sample(d){let {cum,total}=geometry();d=Math.min(total,Math.max(0,d));let i=1;while(i<cum.length-1&&cum[i]<d)i++;const a=data.road[i-1],b=data.road[i]||a,t=(d-cum[i-1])/(cum[i]-cum[i-1]||1);return{x:(a[0]+(b[0]-a[0])*t)*W,y:(a[1]+(b[1]-a[1])*t)*H,angle:Math.atan2((b[1]-a[1])*H,(b[0]-a[0])*W)}}
+function centered(s,y,color,size=14,weight='600'){g.save();g.fillStyle=color;g.font=weight+' '+size+'px system-ui';g.textAlign='center';g.fillText(s,W/2,y);g.restore()}
+function panel(x,y,w,h,p){g.fillStyle=p.card;g.globalAlpha=.92;g.fillRect(x,y,w,h);g.globalAlpha=1;g.strokeStyle=p.frame;g.globalAlpha=.3;g.strokeRect(x,y,w,h);g.globalAlpha=1}
+function drawGrid(p){g.save();g.strokeStyle=p.frame;g.globalAlpha=.12;g.lineWidth=1;for(let i=1;i<8;i++){let x=i*W/8,y=i*H/8;g.beginPath();g.moveTo(x,68);g.lineTo(x,H-65);g.moveTo(25,y);g.lineTo(W-25,y);g.stroke()}g.globalAlpha=.7;g.fillStyle=p.fg;g.font='10px monospace';for(let i=1;i<=5;i++){g.fillText((120.86+i*.024).toFixed(3)+'°E',i*W/6-14,H-34);g.save();g.translate(17,H-i*H/6);g.rotate(-Math.PI/2);g.fillText((15.49+i*.026).toFixed(3)+'°N',0,0);g.restore()}g.restore()}
+function drawHeat(t){if(!on('heat'))return;const pulse=.5+.5*Math.sin(t*3.3);for(const [x,y,r,intensity] of data.spots){const rr=r*(1+pulse*.27),cx=x*W,cy=y*H,gr=g.createRadialGradient(cx,cy,1,cx,cy,rr);gr.addColorStop(0,'rgba(255,35,34,'+(.65*intensity+.25*pulse)+')');gr.addColorStop(.34,'rgba(255,173,0,'+(.45*intensity)+')');gr.addColorStop(.67,'rgba(0,237,250,'+(.24*intensity)+')');gr.addColorStop(1,'rgba(0,160,250,0)');g.fillStyle=gr;g.beginPath();g.arc(cx,cy,rr,0,Math.PI*2);g.fill()}}
+function drawRoads(p){if(!on('roads'))return;g.save();g.lineJoin=g.lineCap='round';g.strokeStyle=p.secondary;g.lineWidth=1.4;data.secondary.forEach(pts=>{line(pts);g.stroke()});g.strokeStyle=p.roads;g.shadowColor=p.roads;g.shadowBlur=16*$('glow').value/100;g.lineWidth=4;line(data.road);g.stroke();g.restore()}
+function drawCar(){if(!on('vehicle')||data.road.length<2)return;const pos=sample(distance);g.save();g.globalCompositeOperation='lighter';g.lineCap=g.lineJoin='round';for(let i=1;i<trail.length;i++){const a=trail[i-1],b=trail[i],f=i/trail.length;g.beginPath();g.strokeStyle='hsla('+b.h+',100%,65%,'+(f*.9)+')';g.shadowColor='hsl('+b.h+',100%,60%)';g.shadowBlur=25*f*$('glow').value/75;g.lineWidth=2+f*7;g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke()}g.restore();
+g.save();g.translate(pos.x,pos.y);g.rotate(pos.angle);g.globalCompositeOperation='lighter';const cone=g.createLinearGradient(9,0,92,0);cone.addColorStop(0,'hsla('+hue+',100%,90%,.6)');cone.addColorStop(1,'hsla('+hue+',100%,60%,0)');g.fillStyle=cone;g.beginPath();g.moveTo(7,-5);g.lineTo(92,-34);g.lineTo(92,34);g.lineTo(7,5);g.fill();
+g.shadowColor='hsl('+hue+',100%,65%)';g.shadowBlur=32*$('glow').value/75;g.fillStyle='hsl('+hue+',100%,65%)';g.beginPath();g.roundRect(-14,-8,28,16,4);g.fill();g.shadowBlur=3;g.fillStyle='#dbf7ff';g.fillRect(-6,-5,12,10);g.fillStyle='#fff';g.fillRect(11,-6,4,4);g.fillRect(11,2,4,4);g.restore()}
+function furniture(p){if(!on('furniture'))return;
+panel(36,95,184,150,p);g.fillStyle=p.fg;g.font='bold 15px system-ui';g.fillText('CHÚ GIẢI / LEGEND',49,119);g.font='12px system-ui';g.fillText('Mức độ điểm nóng',49,142);let grad=g.createLinearGradient(49,0,201,0);[['0','#00def8'],['.33','#00eb77'],['.67','#ffd34d'],['1','#ff2222']].forEach(a=>grad.addColorStop(+a[0],a[1]));g.fillStyle=grad;g.fillRect(49,152,150,11);g.fillStyle=p.fg;g.font='10px system-ui';g.fillText('Thấp',49,178);g.fillText('Cao',173,178);g.strokeStyle=p.roads;g.lineWidth=3;g.beginPath();g.moveTo(49,197);g.lineTo(85,197);g.stroke();g.fillText('Đường chính',95,201);g.setLineDash([5,4]);g.strokeStyle=p.frame;g.beginPath();g.moveTo(49,224);g.lineTo(85,224);g.stroke();g.setLineDash([]);g.fillText('Ranh giới',95,228);
+panel(W-103,95,65,93,p);g.save();g.translate(W-70,141);g.fillStyle='#ee525d';g.beginPath();g.moveTo(0,-33);g.lineTo(9,11);g.lineTo(0,5);g.fill();g.fillStyle=p.fg;g.beginPath();g.moveTo(0,-33);g.lineTo(-9,11);g.lineTo(0,5);g.fill();g.font='bold 16px system-ui';g.textAlign='center';g.fillText('B',0,-39);g.restore();
+panel(36,H-153,240,91,p);g.fillStyle=p.fg;g.font='bold 13px system-ui';g.fillText('THƯỚC TỶ LỆ • MINH HỌA',50,H-129);g.fillStyle=p.fg;g.fillRect(50,H-113,65,9);g.fillStyle='#e34c60';g.fillRect(115,H-113,65,9);g.fillStyle=p.fg;g.font='11px system-ui';g.fillText('0',50,H-91);g.fillText('1',112,H-91);g.fillText('2 đơn vị',172,H-91);
+g.font='11px system-ui';g.fillStyle=p.fg;g.fillText('Long Ngo thiết kế · MIT 2026',W-248,H-70);g.fillText('EPSG:4326 • lưới tham khảo, chưa định vị',W-248,H-53);
+}
+function render(t){const p=palette();g.setTransform(SCALE,0,0,SCALE,0,0);g.fillStyle=p.bg;g.fillRect(0,0,W,H);
+if(on('grid'))drawGrid(p);
+if(on('boundary')){g.save();g.strokeStyle=p.frame;g.lineWidth=2;g.setLineDash([8,5]);line(data.boundary,true);g.stroke();line(data.inset,true);g.stroke();g.restore()}
+drawRoads(p);drawHeat(t);drawCar();
+g.fillStyle=p.fg;centered($('title').value,36,p.fg,17,'800');centered($('place').value,57,p.fg,12,'500');
+furniture(p);g.strokeStyle=p.frame;g.lineWidth=1;g.globalAlpha=.3;g.strokeRect(20,20,W-40,H-40);g.globalAlpha=1;
+const {total}=geometry();$('progress').textContent=Math.round(distance/total*100)+'%';$('hotCount').textContent=data.spots.length;$('routeCount').textContent=data.road.length}
+function reset(){distance=0;trail=[];hue=180;elapsed=0;last=0}
+function animate(time){if(!last)last=time;const dt=Math.min((time-last)/1000,.06);last=time;if(running){elapsed+=dt;const total=geometry().total;distance+=dt*24*Number($('speed').value);if(distance>=total){distance=0;trail=[]}hue=(hue+dt*72)%360;if(data.road.length>=2){const pos=sample(distance);trail.push({...pos,h:hue});while(trail.length>Number($('trail').value))trail.shift()}}render(elapsed);requestAnimationFrame(animate)}
+$('pause').onclick=()=>{running=!running;$('pause').textContent=running?'⏸ Tạm dừng':'▶ Chạy tiếp';last=0};
+$('reset').onclick=()=>reset();$('speed').oninput=()=>{$('speedText').textContent=$('speed').value+'×'};
+$('restore').onclick=()=>{data=structuredClone(initial);reset();$('status').textContent='Đã khôi phục dữ liệu mô phỏng'};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===b));$('status').textContent='Công cụ: '+b.textContent.trim()});
+c.addEventListener('pointerdown',e=>{if(mode==='view')return;const r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(x<0||x>1||y<0||y>1)return;if(mode==='heat')data.spots.push([x,y,35,.75]);if(mode==='route'){data.road.push([x,y]);reset()}if(mode==='delete'){let choices=[...data.spots.map((p,i)=>({kind:'spot',i,d:Math.hypot((p[0]-x)*W,(p[1]-y)*H)})),...data.road.map((p,i)=>({kind:'route',i,d:Math.hypot((p[0]-x)*W,(p[1]-y)*H)}))].sort((a,b)=>a.d-b.d);if(choices[0]&&choices[0].d<35){const v=choices[0];if(v.kind==='spot')data.spots.splice(v.i,1);else if(data.road.length>2){data.road.splice(v.i,1);reset()}}}});
+function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
+$('png').onclick=()=>{render(elapsed);c.toBlob(blob=>{if(blob)download('dynamicmap-neon.png',blob)},'image/png')};
+$('save').onclick=()=>{const payload={version:1,title:$('title').value,place:$('place').value,theme:$('theme').value,data};download('dynamicmap-project.json',new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}))};
+$('load').onclick=()=>$('file').click();
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text()),d=obj.data;if(!d||!Array.isArray(d.road)||d.road.length<2||!Array.isArray(d.spots)||!Array.isArray(d.boundary)||!Array.isArray(d.inset)||!Array.isArray(d.secondary))throw Error('Thiếu cấu trúc bản đồ');function validPoints(pts){return pts.every(p=>Array.isArray(p)&&p.length>=2&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&p[0]>=0&&p[0]<=1&&p[1]>=0&&p[1]<=1)}if(!validPoints(d.road)||!validPoints(d.boundary)||!validPoints(d.inset)||!d.secondary.every(validPoints)||!validPoints(d.spots))throw Error('Tọa độ không hợp lệ');data=d;$('title').value=String(obj.title||'Bản đồ tùy chỉnh').slice(0,100);$('place').value=String(obj.place||'').slice(0,100);if(['neon','navy','light'].includes(obj.theme))$('theme').value=obj.theme;reset();$('status').textContent='Đã nhập dự án JSON'}catch(err){alert('Không thể nhập JSON: '+err.message)}e.target.value=''};
+requestAnimationFrame(animate);
+</script></body></html>
